@@ -1,10 +1,6 @@
 import streamlit as st
 from datetime import datetime
 from docx import Document
-from docx.shared import Inches
-from docx.enum.text import WD_PARAGRAPH_ALIGNMENT
-import matplotlib.pyplot as plt
-import numpy as np
 import openai
 import os
 
@@ -122,8 +118,14 @@ def generar_informe_word(calificaciones, promedios_ponderados, calificacion_fina
     st.success("El informe se ha generado correctamente en Autoevaluacion_Norma_ISO_27001.docx")
 
 def procesar_calificaciones(calificaciones):
-    promedios = {aspecto: sum(valores[1] for valores en lista) / len(lista) for aspecto, lista in calificaciones.items()}
-    promedios_ponderados = {aspecto: (promedio / 5) * 20 for aspecto, promedio in promedios.items()}
+    promedios = {
+        aspecto: sum(calificacion for pregunta, calificacion in lista) / len(lista)
+        for aspecto, lista in calificaciones.items()
+    }
+    promedios_ponderados = {
+        aspecto: (promedio / 5) * 20 
+        for aspecto, promedio in promedios.items()
+    }
     calificacion_final = sum(promedios_ponderados.values()) / len(promedios_ponderados) * 5
     return promedios_ponderados, calificacion_final
 
@@ -139,7 +141,7 @@ def main():
     for aspecto, preguntas in rubricas.items():
         st.subheader(aspecto)
         for pregunta, opciones in preguntas.items():
-            seleccion = st.selectbox(pregunta, [f"{k}: {v}" for k, v en opciones.items()])
+            seleccion = st.selectbox(pregunta, [f"{k}: {v}" for k, v in opciones.items()])
             calificacion = int(seleccion.split(":")[0])
             calificaciones[aspecto].append((pregunta, calificacion))
 
