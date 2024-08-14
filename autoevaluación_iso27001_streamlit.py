@@ -1,8 +1,13 @@
 import streamlit as st
 from datetime import datetime
 from docx import Document
-import openai
 import os
+import smtplib
+from email.mime.multipart import MIMEMultipart
+from email.mime.text import MIMEText
+from email.mime.base import MIMEBase
+from email import encoders
+from io import BytesIO
 
 # Leer la clave API desde una variable de entorno
 openai.api_key = os.getenv('OPENAI_API_KEY')
@@ -96,7 +101,41 @@ rubricas = {
     }
 }
 
+def enviar_correo(destinatario, asunto, cuerpo, archivo_adjunto, cc_email=None):
+    remitente = "informes@deltechaudit.com"
+    password = "DELinfo@2024"  # La contraseña de la cuenta creada
+
+    # Configuración del servidor SMTP
+    servidor = smtplib.SMTP('mail.deltechaudit.com', 587)
+    servidor.starttls()  # Inicia la conexión segura con TLS
+    servidor.login(remitente, password)
+
+    # Crear el mensaje
+    mensaje = MIMEMultipart()
+    mensaje['From'] = remitente
+    mensaje['To'] = destinatario
+    mensaje['Subject'] = asunto
+
+    if cc_email:
+        mensaje['Cc'] = cc_email
+        destinatario = [destinatario, cc_email]  # Enviar el correo a ambos destinatarios
+
+    # Adjuntar el cuerpo del mensaje
+    mensaje.attach(MIMEText(cuerpo, 'plain'))
+
+    # Adjuntar el archivo
+    adjunto = MIMEBase('application', 'octet-stream')
+    adjunto.set_payload(archivo_adjunto.read())
+    encoders.encode_base64(adjunto)
+    adjunto.add_header('Content-Disposition', f"attachment; filename=Autoevaluacion_Norma_ISO_27001.docx")
+    mensaje.attach(adjunto)
+
+    # Enviar el correo
+    servidor.sendmail(remitente, destinatario, mensaje.as_string())
+    servidor.quit()
+
 def generar_informe_word(calificaciones, promedios_ponderados, calificacion_final, nombre_compania, nombre_evaluador, destinatario, fecha_evaluacion):
+    buffer = BytesIO()
     document = Document()
     document.add_heading('Informe de Autoevaluación de Cumplimiento de la Norma ISO 27001', 0)
     document.add_paragraph(f'Compañía Evaluada: {nombre_compania}', style='Title')
@@ -114,8 +153,14 @@ def generar_informe_word(calificaciones, promedios_ponderados, calificacion_fina
             p.add_run(f'{calificacion} - {descripcion}')
 
     document.add_paragraph(f'Calificación final del departamento de sistemas: {calificacion_final:.2f} / 100')
-    document.save('Autoevaluacion_Norma_ISO_27001.docx')
-    st.success("El informe se ha generado correctamente en Autoevaluacion_Norma_ISO_27001.docx")
+    
+    # Guardar el documento en el buffer
+    document.save(buffer)
+    buffer.seek(0)
+
+    # Enviar el informe por correo
+    enviar_correo(destinatario, "Informe de Autoevaluación ISO 27001", "Adjunto encontrarás el informe.", buffer, cc_email="tu_empresa@deltechaudit.com")
+    st.success(f"El informe se ha enviado correctamente al correo: {destinatario} y a tu correo empresarial.")
 
 def procesar_calificaciones(calificaciones):
     promedios = {
@@ -135,7 +180,7 @@ def main():
 
     nombre_compania = st.text_input("Nombre de la Compañía Evaluada", "")
     nombre_evaluador = st.text_input("Nombre y Apellido del Evaluador", "")
-    destinatario = st.text_input("Nombre y Apellido del Destinatario", "")
+    destinatario = st.text_input("Correo Electrónico del Destinatario", "")
     fecha_evaluacion = datetime.now().strftime("%d/%m/%Y %H:%M:%S")
 
     for aspecto, preguntas in rubricas.items():
