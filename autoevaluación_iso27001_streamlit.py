@@ -122,29 +122,28 @@ def generar_informe_word(calificaciones, promedios_ponderados, calificacion_fina
     st.success("El informe se ha generado correctamente en Autoevaluacion_Norma_ISO_27001.docx")
 
 def procesar_calificaciones(calificaciones):
-    promedios = {aspecto: sum(valores[1] for valores in lista) / len(lista) for aspecto, lista in calificaciones.items()}
+    promedios = {aspecto: sum(valores[1] for valores en lista) / len(lista) for aspecto, lista in calificaciones.items()}
     promedios_ponderados = {aspecto: (promedio / 5) * 20 for aspecto, promedio in promedios.items()}
     calificacion_final = sum(promedios_ponderados.values()) / len(promedios_ponderados) * 5
     return promedios_ponderados, calificacion_final
-
 
 def main():
     st.title("Evaluación de Cumplimiento ISO 27001")
     calificaciones = {key: [] for key in rubricas.keys()}
 
+    nombre_compania = st.text_input("Nombre de la Compañía Evaluada", "")
+    nombre_evaluador = st.text_input("Nombre y Apellido del Evaluador", "")
+    destinatario = st.text_input("Nombre y Apellido del Destinatario", "")
+    fecha_evaluacion = datetime.now().strftime("%d/%m/%Y %H:%M:%S")
+
     for aspecto, preguntas in rubricas.items():
         st.subheader(aspecto)
         for pregunta, opciones in preguntas.items():
-            seleccion = st.selectbox(pregunta, [f"{k}: {v}" for k, v in opciones.items()])
+            seleccion = st.selectbox(pregunta, [f"{k}: {v}" for k, v en opciones.items()])
             calificacion = int(seleccion.split(":")[0])
             calificaciones[aspecto].append((pregunta, calificacion))
 
     if st.button("Generar Informe"):
-        nombre_compania = st.text_input("Nombre de la Compañía Evaluada", "")
-        nombre_evaluador = st.text_input("Nombre y Apellido del Evaluador", "")
-        destinatario = st.text_input("Nombre y Apellido del Destinatario", "")
-        fecha_evaluacion = datetime.now().strftime("%d/%m/%Y %H:%M:%S")
-
         if not nombre_compania or not nombre_evaluador or not destinatario:
             st.error("Debe completar todos los campos para generar el informe.")
         else:
