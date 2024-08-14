@@ -122,10 +122,11 @@ def generar_informe_word(calificaciones, promedios_ponderados, calificacion_fina
     st.success("El informe se ha generado correctamente en Autoevaluacion_Norma_ISO_27001.docx")
 
 def procesar_calificaciones(calificaciones):
-    promedios = {aspecto: sum(valores[1] for valores en lista) / len(lista) for aspecto, lista in calificaciones.items()}
+    promedios = {aspecto: sum(valores[1] for valores in lista) / len(lista) for aspecto, lista in calificaciones.items()}
     promedios_ponderados = {aspecto: (promedio / 5) * 20 for aspecto, promedio in promedios.items()}
     calificacion_final = sum(promedios_ponderados.values()) / len(promedios_ponderados) * 5
     return promedios_ponderados, calificacion_final
+
 
 def main():
     st.title("Evaluación de Cumplimiento ISO 27001")
