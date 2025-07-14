@@ -1,26 +1,22 @@
-# autoevaluacion_iso27001_streamlit.py
-
 import streamlit as st
 import pandas as pd
 from docx import Document
 from io import BytesIO
 from datetime import datetime
 import plotly.express as px
-import openai
 import os
+from openai import OpenAI
 
 # -------------------------------
 # CONFIGURAR DEEPSEEK
 # -------------------------------
-openai.api_key = os.getenv("DEEPSEEK_API_KEY")
-openai.api_base = "https://api.deepseek.com"
-
-if not openai.api_key:
-    st.error("No se encontró la clave API de DeepSeek en los secrets de Streamlit.")
-    st.stop()
+client = OpenAI(
+    api_key=os.getenv("DEEPSEEK_API_KEY"),
+    base_url="https://api.deepseek.com"
+)
 
 # -------------------------------
-# DATOS DE LA RÚBRICA
+# RUBRICAS COMPLETAS
 # -------------------------------
 rubricas = {
     'Gestión de Acceso': {
@@ -30,14 +26,76 @@ rubricas = {
             3: 'Políticas y procedimientos documentados y regularmente revisados.',
             4: 'Cumplen con todos los requisitos establecidos por ISO 27001.',
             5: 'Implementación avanzada que supera los requisitos estándar.'
+        },
+        '¿Se implementan controles de autenticación fuertes para acceder a sistemas críticos?': {
+            1: 'No se implementan controles de autenticación.',
+            2: 'Se implementan controles de autenticación de manera limitada o inconsistente.',
+            3: 'Controles de autenticación fuertes implementados de manera regular.',
+            4: 'Cumple totalmente con los requisitos de autenticación de ISO 27001.',
+            5: 'Implementación avanzada de controles de autenticación que supera los requisitos estándar.'
         }
     },
     'Seguridad Física y Ambiental': {
-        '¿Existen medidas de seguridad física para proteger los equipos críticos?': {
+        '¿Existen medidas de seguridad física para proteger los equipos críticos del departamento de sistemas?': {
             1: 'No hay medidas de seguridad física implementadas.',
-            2: 'Medidas físicas parciales o insuficientes.',
-            3: 'Medidas físicas implementadas regularmente.',
-            4: 'Cumple totalmente con ISO 27001.',
+            2: 'Medidas de seguridad física parciales o insuficientes.',
+            3: 'Medidas de seguridad física implementadas regularmente.',
+            4: 'Cumple totalmente con los requisitos de seguridad física de ISO 27001.',
+            5: 'Implementación avanzada que supera los requisitos estándar.'
+        },
+        '¿Se realizan controles ambientales para proteger la infraestructura tecnológica (temperatura, humedad, etc.)?': {
+            1: 'No se realizan controles ambientales.',
+            2: 'Controles ambientales realizados de manera irregular o insuficiente.',
+            3: 'Controles ambientales implementados regularmente.',
+            4: 'Cumple totalmente con los requisitos de controles ambientales de ISO 27001.',
+            5: 'Implementación avanzada que supera los requisitos estándar.'
+        }
+    },
+    'Gestión de Comunicaciones y Operaciones': {
+        '¿Se utilizan procedimientos seguros para la transmisión de datos sensibles dentro y fuera de la organización?': {
+            1: 'No se utilizan procedimientos seguros para la transmisión de datos.',
+            2: 'Procedimientos seguros utilizados de manera parcial o inconsistente.',
+            3: 'Procedimientos seguros utilizados regularmente.',
+            4: 'Cumple totalmente con los requisitos de seguridad de transmisión de datos de ISO 27001.',
+            5: 'Implementación avanzada que supera los requisitos estándar.'
+        },
+        '¿Se realizan pruebas periódicas de vulnerabilidades y evaluaciones de riesgos en la infraestructura de redes?': {
+            1: 'No se realizan pruebas de vulnerabilidades ni evaluaciones de riesgos.',
+            2: 'Pruebas de vulnerabilidades realizadas de manera limitada o irregular.',
+            3: 'Pruebas de vulnerabilidades y evaluaciones de riesgos realizadas regularmente.',
+            4: 'Cumple totalmente con los requisitos de pruebas y evaluaciones de ISO 27001.',
+            5: 'Implementación avanzada que supera los requisitos estándar.'
+        }
+    },
+    'Control de Acceso a la Información': {
+        '¿Se implementan controles para limitar el acceso a la información confidencial y crítica dentro del departamento de sistemas?': {
+            1: 'No se implementan controles de acceso a la información.',
+            2: 'Controles de acceso implementados de manera limitada o inconsistente.',
+            3: 'Controles de acceso implementados regularmente.',
+            4: 'Cumple totalmente con los requisitos de control de acceso de ISO 27001.',
+            5: 'Implementación avanzada que supera los requisitos estándar.'
+        },
+        '¿Se establecen y mantienen políticas para la clasificación y etiquetado de la información dentro del departamento de sistemas?': {
+            1: 'No se establecen ni mantienen políticas para clasificación y etiquetado.',
+            2: 'Políticas establecidas pero no mantenidas adecuadamente.',
+            3: 'Políticas mantenidas regularmente.',
+            4: 'Cumple totalmente con los requisitos de clasificación y etiquetado.',
+            5: 'Implementación avanzada que supera los requisitos estándar.'
+        }
+    },
+    'Gestión de Incidentes de Seguridad de la Información': {
+        '¿Existe un procedimiento documentado para la gestión de incidentes de seguridad de la información?': {
+            1: 'No hay procedimiento documentado.',
+            2: 'Procedimiento documentado pero no actualizado.',
+            3: 'Procedimiento documentado y regularmente revisado.',
+            4: 'Cumple totalmente con los requisitos de ISO 27001.',
+            5: 'Implementación avanzada que supera los requisitos estándar.'
+        },
+        '¿Se realiza capacitación y simulacros periódicos para el personal sobre cómo responder a incidentes de seguridad de la información?': {
+            1: 'No se realizan capacitaciones ni simulacros.',
+            2: 'Capacitaciones realizadas de manera irregular.',
+            3: 'Capacitaciones realizadas regularmente.',
+            4: 'Cumple totalmente con los requisitos de ISO 27001.',
             5: 'Implementación avanzada que supera los requisitos estándar.'
         }
     }
@@ -55,7 +113,6 @@ def procesar_calificaciones(calificaciones):
     return promedios
 
 def generar_texto_ia(promedios):
-    # Armar prompt dinámico
     prompt = f"""
 Eres un auditor experto en ISO 27001. Con base en estos resultados de autoevaluación:
 {promedios}
@@ -70,7 +127,7 @@ Genera un texto profesional que incluya:
 Responde en lenguaje técnico y profesional.
 """
 
-    response = openai.ChatCompletion.create(
+    completion = client.chat.completions.create(
         model="deepseek-chat",
         messages=[
             {"role": "system", "content": "Eres un auditor experto en ISO 27001."},
@@ -78,7 +135,7 @@ Responde en lenguaje técnico y profesional.
         ]
     )
 
-    texto_ia = response.choices[0].message.content
+    texto_ia = completion.choices[0].message.content
     return texto_ia
 
 def generar_informe_word(calificaciones, promedios, texto_ia,
@@ -93,7 +150,7 @@ def generar_informe_word(calificaciones, promedios, texto_ia,
     doc.add_paragraph(f'Fecha: {fecha_evaluacion}')
     doc.add_page_break()
 
-    # Resultados Detallados
+    # Detalle
     doc.add_heading('Detalles de la Evaluación', level=1)
     for aspecto, preguntas in calificaciones.items():
         doc.add_heading(aspecto, level=2)
@@ -112,7 +169,7 @@ def generar_informe_word(calificaciones, promedios, texto_ia,
 
     doc.add_page_break()
 
-    # Análisis de IA
+    # Texto IA
     doc.add_heading('Análisis y Recomendaciones IA', level=1)
     doc.add_paragraph(texto_ia)
 
@@ -138,7 +195,7 @@ def generar_grafico(promedios):
 # -------------------------------
 
 def main():
-    st.title("Autoevaluación ISO 27001 - Con Recomendaciones IA (DeepSeek)")
+    st.title("Autoevaluación ISO 27001 - DeepSeek")
 
     nombre_compania = st.text_input("Nombre de la Compañía Evaluada", "")
     nombre_evaluador = st.text_input("Nombre del Evaluador", "")
@@ -163,11 +220,8 @@ def main():
         else:
             promedios = procesar_calificaciones(calificaciones)
             generar_grafico(promedios)
-            
-            # Llamar a DeepSeek para generar texto IA
-            texto_ia = generar_texto_ia(promedios)
 
-            # Generar informe Word
+            texto_ia = generar_texto_ia(promedios)
             buffer = generar_informe_word(
                 calificaciones,
                 promedios,
@@ -176,7 +230,7 @@ def main():
                 nombre_evaluador,
                 fecha_evaluacion
             )
-            
+
             st.success("¡Informe generado exitosamente!")
             st.download_button(
                 label="Descargar Informe en Word",
