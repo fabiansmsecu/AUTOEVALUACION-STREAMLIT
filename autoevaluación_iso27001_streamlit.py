@@ -1,3 +1,8 @@
+# -----------------------------------
+# PARTE 1
+# -----------------------------------
+
+# IMPORTACIONES
 import streamlit as st
 import pandas as pd
 from docx import Document
@@ -16,117 +21,77 @@ client = OpenAI(
 )
 
 # -------------------------------
-# RUBRICAS COMPLETAS
+# RUBRICA COMPLETA (DESCRIPCIONES + RECOMENDACIONES)
 # -------------------------------
-rubricas = {
-    'Gestión de Acceso': {
-        '¿Existen políticas y procedimientos documentados para la gestión de accesos?': {
-            1: 'No se tienen políticas ni procedimientos documentados.',
-            2: 'Existen políticas y procedimientos, pero no están completamente documentados.',
-            3: 'Políticas y procedimientos documentados y regularmente revisados.',
-            4: 'Cumplen con todos los requisitos establecidos por ISO 27001.',
-            5: 'Implementación avanzada que supera los requisitos estándar.'
-        },
-        '¿Se implementan controles de autenticación fuertes para acceder a sistemas críticos?': {
-            1: 'No se implementan controles de autenticación.',
-            2: 'Se implementan controles de autenticación de manera limitada o inconsistente.',
-            3: 'Controles de autenticación fuertes implementados de manera regular.',
-            4: 'Cumple totalmente con los requisitos de autenticación de ISO 27001.',
-            5: 'Implementación avanzada de controles de autenticación que supera los requisitos estándar.'
-        }
-    },
-    'Seguridad Física y Ambiental': {
-        '¿Existen medidas de seguridad física para proteger los equipos críticos del departamento de sistemas?': {
-            1: 'No hay medidas de seguridad física implementadas.',
-            2: 'Medidas de seguridad física parciales o insuficientes.',
-            3: 'Medidas de seguridad física implementadas regularmente.',
-            4: 'Cumple totalmente con los requisitos de seguridad física de ISO 27001.',
-            5: 'Implementación avanzada que supera los requisitos estándar.'
-        },
-        '¿Se realizan controles ambientales para proteger la infraestructura tecnológica (temperatura, humedad, etc.)?': {
-            1: 'No se realizan controles ambientales.',
-            2: 'Controles ambientales realizados de manera irregular o insuficiente.',
-            3: 'Controles ambientales implementados regularmente.',
-            4: 'Cumple totalmente con los requisitos de controles ambientales de ISO 27001.',
-            5: 'Implementación avanzada que supera los requisitos estándar.'
-        }
-    },
-    'Gestión de Comunicaciones y Operaciones': {
-        '¿Se utilizan procedimientos seguros para la transmisión de datos sensibles dentro y fuera de la organización?': {
-            1: 'No se utilizan procedimientos seguros para la transmisión de datos.',
-            2: 'Procedimientos seguros utilizados de manera parcial o inconsistente.',
-            3: 'Procedimientos seguros utilizados regularmente.',
-            4: 'Cumple totalmente con los requisitos de seguridad de transmisión de datos de ISO 27001.',
-            5: 'Implementación avanzada que supera los requisitos estándar.'
-        },
-        '¿Se realizan pruebas periódicas de vulnerabilidades y evaluaciones de riesgos en la infraestructura de redes?': {
-            1: 'No se realizan pruebas de vulnerabilidades ni evaluaciones de riesgos.',
-            2: 'Pruebas de vulnerabilidades realizadas de manera limitada o irregular.',
-            3: 'Pruebas de vulnerabilidades y evaluaciones de riesgos realizadas regularmente.',
-            4: 'Cumple totalmente con los requisitos de pruebas y evaluaciones de ISO 27001.',
-            5: 'Implementación avanzada que supera los requisitos estándar.'
-        }
-    },
-    'Control de Acceso a la Información': {
-        '¿Se implementan controles para limitar el acceso a la información confidencial y crítica dentro del departamento de sistemas?': {
-            1: 'No se implementan controles de acceso a la información.',
-            2: 'Controles de acceso implementados de manera limitada o inconsistente.',
-            3: 'Controles de acceso implementados regularmente.',
-            4: 'Cumple totalmente con los requisitos de control de acceso de ISO 27001.',
-            5: 'Implementación avanzada que supera los requisitos estándar.'
-        },
-        '¿Se establecen y mantienen políticas para la clasificación y etiquetado de la información dentro del departamento de sistemas?': {
-            1: 'No se establecen ni mantienen políticas para clasificación y etiquetado.',
-            2: 'Políticas establecidas pero no mantenidas adecuadamente.',
-            3: 'Políticas mantenidas regularmente.',
-            4: 'Cumple totalmente con los requisitos de clasificación y etiquetado.',
-            5: 'Implementación avanzada que supera los requisitos estándar.'
-        }
-    },
-    'Gestión de Incidentes de Seguridad de la Información': {
-        '¿Existe un procedimiento documentado para la gestión de incidentes de seguridad de la información?': {
-            1: 'No hay procedimiento documentado.',
-            2: 'Procedimiento documentado pero no actualizado.',
-            3: 'Procedimiento documentado y regularmente revisado.',
-            4: 'Cumple totalmente con los requisitos de ISO 27001.',
-            5: 'Implementación avanzada que supera los requisitos estándar.'
-        },
-        '¿Se realiza capacitación y simulacros periódicos para el personal sobre cómo responder a incidentes de seguridad de la información?': {
-            1: 'No se realizan capacitaciones ni simulacros.',
-            2: 'Capacitaciones realizadas de manera irregular.',
-            3: 'Capacitaciones realizadas regularmente.',
-            4: 'Cumple totalmente con los requisitos de ISO 27001.',
-            5: 'Implementación avanzada que supera los requisitos estándar.'
-        }
-    }
-}
+# ✅ Aquí debes pegar el bloque de RÚBRICAS que generamos antes
+# Para ahorrar espacio aquí, colócala desde el mensaje anterior
+from rubricas import rubricas
 
 # -------------------------------
 # FUNCIONES
 # -------------------------------
 
 def procesar_calificaciones(calificaciones):
+    """
+    Calcula el promedio por dominio.
+    """
     promedios = {
         aspecto: sum(calificacion for pregunta, calificacion in lista) / len(lista)
         for aspecto, lista in calificaciones.items()
     }
     return promedios
 
-def generar_texto_ia(promedios):
+def generar_prompt_para_DeepSeek(calificaciones, promedios, empresa, rubro, tamanio):
+    """
+    Construye el prompt COMPLETO para DeepSeek,
+    incluyendo preguntas, respuestas, descripciones y recomendaciones.
+    """
+
+    # Construir texto con respuestas completas
+    texto_respuestas = ""
+
+    for aspecto, preguntas in calificaciones.items():
+        texto_respuestas += f"\n## {aspecto}\n"
+        for pregunta, calificacion in preguntas:
+            descripcion = rubricas[aspecto][pregunta][calificacion]['descripcion']
+            recomendacion = rubricas[aspecto][pregunta][calificacion]['recomendacion']
+            texto_respuestas += f"- **{pregunta}**\n    - Calificación: {calificacion}\n    - Descripción: {descripcion}\n    - Recomendación: {recomendacion}\n\n"
+
+    # Armamos prompt extenso para IA
     prompt = f"""
-Eres un auditor experto en ISO 27001. Con base en estos resultados de autoevaluación:
+Eres un auditor experto en la norma ISO 27001.
+
+Estoy realizando una autoevaluación para la empresa "{empresa}", dedicada a "{rubro}", con aproximadamente {tamanio} empleados.
+
+Estos son los resultados obtenidos:
+
+{texto_respuestas}
+
+Promedios por dominio:
 {promedios}
 
-Genera un texto profesional que incluya:
-- Fortalezas encontradas
-- Debilidades
-- Recomendaciones técnicas específicas según ISO 27001
-- Riesgos asociados a las debilidades
-- Plan de acción priorizado
+Con base en esta información, genera un informe profesional que incluya:
 
-Responde en lenguaje técnico y profesional.
+- Hallazgos específicos sobre las áreas más críticas
+- Identificación de los controles ISO 27001 que se incumplen o tienen debilidades
+- Riesgos reales que estas debilidades implican para una empresa de este tamaño y sector
+- Recomendaciones técnicas específicas y realistas
+- Plan de acción priorizado, con tiempos estimados y responsables sugeridos
+- Redacción profesional, clara y entendible para directivos
+
+Evita recomendaciones genéricas. Redacta hallazgos y conclusiones personalizadas según los datos entregados.
 """
 
+    return prompt
+
+# -----------------------------------
+# PARTE 2
+# -----------------------------------
+
+def generar_texto_DeepSeek(prompt):
+    """
+    Llama a DeepSeek para generar el texto profesional.
+    """
     completion = client.chat.completions.create(
         model="deepseek-chat",
         messages=[
@@ -139,45 +104,65 @@ Responde en lenguaje técnico y profesional.
     return texto_ia
 
 def generar_informe_word(calificaciones, promedios, texto_ia,
-                         nombre_compania, nombre_evaluador, fecha_evaluacion):
+                         nombre_compania, nombre_evaluador,
+                         destinatario, fecha_evaluacion):
+    """
+    Genera un archivo Word con todos los resultados.
+    """
     buffer = BytesIO()
     doc = Document()
 
     # Portada
-    doc.add_heading('Informe de Autoevaluación ISO 27001', 0)
-    doc.add_paragraph(f'Compañía: {nombre_compania}')
-    doc.add_paragraph(f'Evaluador: {nombre_evaluador}')
-    doc.add_paragraph(f'Fecha: {fecha_evaluacion}')
+    doc.add_heading('Informe de Evaluación de Cumplimiento de la Norma ISO 27001', 0)
+    doc.add_paragraph(f'Compañía Evaluada: {nombre_compania}', style='Title')
+    doc.add_paragraph(f'Evaluador: {nombre_evaluador}', style='Heading 3')
+    doc.add_paragraph(f'Fecha de Evaluación: {fecha_evaluacion}', style='Heading 3')
     doc.add_page_break()
 
-    # Detalle
-    doc.add_heading('Detalles de la Evaluación', level=1)
+    # Dimensiones
+    doc.add_heading('Dimensiones Evaluadas', level=1)
+    dimensiones = {
+        'Gestión de Acceso': "Evalúa la existencia y eficacia de políticas y procedimientos para la gestión de accesos.",
+        'Seguridad Física y Ambiental': "Evalúa medidas físicas y ambientales para proteger los activos de TI.",
+        'Gestión de Comunicaciones y Operaciones': "Evalúa prácticas para proteger datos en tránsito y operaciones seguras.",
+        'Control de Acceso a la Información': "Evalúa controles para limitar acceso a información confidencial.",
+        'Gestión de Incidentes de Seguridad de la Información': "Evalúa preparación y respuesta ante incidentes de seguridad."
+    }
+    for dim, desc in dimensiones.items():
+        doc.add_heading(dim, level=2)
+        doc.add_paragraph(desc)
+
+    doc.add_page_break()
+
+    # Resultados Detallados
+    doc.add_heading('Resultados de la Evaluación', level=1)
     for aspecto, preguntas in calificaciones.items():
         doc.add_heading(aspecto, level=2)
         for pregunta, calificacion in preguntas:
-            descripcion = rubricas[aspecto][pregunta][calificacion]
+            desc = rubricas[aspecto][pregunta][calificacion]['descripcion']
+            recomendacion = rubricas[aspecto][pregunta][calificacion]['recomendacion']
             p = doc.add_paragraph()
-            p.add_run(f'{pregunta}: ').bold = True
-            p.add_run(f'{calificacion} - {descripcion}')
-    
-    doc.add_page_break()
-
-    # Promedios
-    doc.add_heading('Promedios por Dominio', level=1)
-    for aspecto, promedio in promedios.items():
-        doc.add_paragraph(f"{aspecto}: {promedio:.2f} / 5")
+            p.add_run(f"{pregunta}: ").bold = True
+            p.add_run(f"{calificacion} - {desc}")
+            doc.add_paragraph(f"Recomendación: {recomendacion}")
+        doc.add_paragraph(f"Promedio del aspecto: {promedios[aspecto]:.2f} / 5")
+        doc.add_paragraph()
 
     doc.add_page_break()
 
     # Texto IA
-    doc.add_heading('Análisis y Recomendaciones IA', level=1)
+    doc.add_heading('Análisis y Recomendaciones Generadas por IA', level=1)
     doc.add_paragraph(texto_ia)
 
+    # Guardar archivo en memoria
     doc.save(buffer)
     buffer.seek(0)
     return buffer
 
 def generar_grafico(promedios):
+    """
+    Genera un gráfico de barras con los promedios.
+    """
     df = pd.DataFrame(list(promedios.items()), columns=["Dominio", "Promedio"])
     fig = px.bar(
         df,
@@ -191,43 +176,63 @@ def generar_grafico(promedios):
     st.plotly_chart(fig)
 
 # -------------------------------
-# MAIN APP
+# INTERFAZ STREAMLIT
 # -------------------------------
 
 def main():
-    st.title("Autoevaluación ISO 27001 - DeepSeek")
+    st.title("Evaluación ISO 27001 - Con IA DeepSeek")
+
+    st.info("Completa todos los campos y responde el cuestionario para generar un informe detallado con análisis de IA.")
 
     nombre_compania = st.text_input("Nombre de la Compañía Evaluada", "")
     nombre_evaluador = st.text_input("Nombre del Evaluador", "")
+    destinatario = st.text_input("Destinatario del Informe", "")
+    rubro = st.text_input("Sector o Rubro de la Empresa (ej. salud, finanzas, retail, etc.)", "")
+    tamanio = st.number_input("Cantidad aproximada de empleados", min_value=1, step=1)
+
     fecha_evaluacion = datetime.now().strftime("%d/%m/%Y %H:%M:%S")
 
     calificaciones = {key: [] for key in rubricas.keys()}
 
     for aspecto, preguntas in rubricas.items():
         st.subheader(aspecto)
-        for pregunta, opciones in preguntas.items():
+        for pregunta, niveles in preguntas.items():
+            opciones = [f"{k}: {v['descripcion']}" for k, v in niveles.items()]
             seleccion = st.selectbox(
                 pregunta,
-                [f"{k}: {v}" for k, v in opciones.items()],
+                opciones,
                 key=f"{aspecto}_{pregunta}"
             )
             calificacion = int(seleccion.split(":")[0])
             calificaciones[aspecto].append((pregunta, calificacion))
 
     if st.button("Generar Informe"):
-        if not nombre_compania or not nombre_evaluador:
-            st.error("Completa todos los campos antes de continuar.")
+        if not all([nombre_compania, nombre_evaluador, destinatario, rubro, tamanio]):
+            st.error("¡Completa todos los campos antes de generar el informe!")
         else:
             promedios = procesar_calificaciones(calificaciones)
             generar_grafico(promedios)
 
-            texto_ia = generar_texto_ia(promedios)
+            # Generar prompt dinámico
+            prompt = generar_prompt_para_DeepSeek(
+                calificaciones,
+                promedios,
+                nombre_compania,
+                rubro,
+                tamanio
+            )
+
+            # Llamada a DeepSeek
+            texto_ia = generar_texto_DeepSeek(prompt)
+
+            # Generar informe Word
             buffer = generar_informe_word(
                 calificaciones,
                 promedios,
                 texto_ia,
                 nombre_compania,
                 nombre_evaluador,
+                destinatario,
                 fecha_evaluacion
             )
 
@@ -241,3 +246,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+
